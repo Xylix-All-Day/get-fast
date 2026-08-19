@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GET FAST - Speed Training</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+        body { background:linear-gradient(135deg,#0f172a,#1e293b); color:white; padding:40px; min-height:100vh; }
+        .container { max-width:1200px; margin:auto; }
+        .hero { text-align:center; margin-bottom:40px; }
+        .hero h1 { font-size:3rem; margin-bottom:10px; }
+        .hero p { opacity:.8; }
+        .form-card { background:#1e293b; padding:30px; border-radius:20px; box-shadow:0 0 30px rgba(0,0,0,.3); margin-bottom:30px; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; }
+        input { width:100%; padding:14px; border:none; border-radius:12px; background:#334155; color:white; font-size:16px; }
+        input::placeholder { color:#94a3b8; }
+        button { width:100%; padding:15px; margin-top:20px; background:#22c55e; border:none; border-radius:12px; color:white; font-size:18px; cursor:pointer; transition:.3s; }
+        button:hover { transform:translateY(-3px); opacity:0.9; }
+        .hidden { display:none; }
+        .dashboard { animation:fade .6s ease; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; margin-bottom:30px; }
+        .stat { background:#1e293b; padding:20px; border-radius:16px; text-align:center; border:1px solid #334155; }
+        .stat h3 { margin-bottom:10px; color:#94a3b8; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; }
+        .stat p { font-size:1.2rem; font-weight:bold; }
+        .section { background:#1e293b; padding:25px; border-radius:20px; margin-top:25px; animation:slide .6s ease; border:1px solid #334155; }
+        .section h2 { margin-bottom:15px; color:#38bdf8; }
+        .plan-item { background:#334155; padding:12px; border-radius:10px; margin-bottom:10px; }
+        .plan-item button { width:auto; padding:8px 20px; margin-top:10px; background:#22c55e; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer; transition:.3s; }
+        .plan-item button:hover { transform:scale(1.05); }
+        .plan-item button:disabled { background:#475569; cursor:not-allowed; opacity:0.55; transform:none; }
+        .progress { height:25px; background:#334155; border-radius:20px; overflow:hidden; margin:20px 0; }
+        .fill { height:100%; width:0%; background:linear-gradient(90deg,#22c55e,#84cc16); transition:1.5s ease; }
+        @keyframes fade { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slide { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+        #display { font-size:60px; text-align:center; margin:20px 0; font-weight:bold; letter-spacing:2px; font-family:'Courier New',monospace; }
+        .streak-badge { display:inline-block; background:#f59e0b; color:#0f172a; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:0.9rem; margin-top:5px; }
+        footer { margin-top:40px; text-align:center; opacity:0.6; font-size:0.9rem; padding:20px; border-top:1px solid #334155; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="hero"><h1>⚡ GET FAST</h1><p>Speed & Vertical Jump Training System</p></div>
+
+    <div class="form-card">
+        <div class="grid">
+            <input id="age" placeholder="Age" type="number">
+            <input id="height" placeholder="Height (cm)" type="number">
+            <input id="current100m" placeholder="Current 100m Time" type="number" step="0.01">
+            <input id="goal100m" placeholder="Goal 100m Time" type="number" step="0.01">
+            <input id="currentVertical" placeholder="Current Vertical Jump (cm)" type="number">
+            <input id="goalVertical" placeholder="Goal Vertical Jump (cm)" type="number">
+        </div>
+        <button onclick="generatePlan()">Generate My Plan</button>
+        <button onclick="clearData()" style="background:#ef4444;">Clear Saved Data</button>
+    </div>
+
+    <div id="dashboard" class="dashboard hidden">
+        <div class="stats">
+            <div class="stat"><h3>Current 100m</h3><p id="show100">-</p></div>
+            <div class="stat"><h3>Goal 100m</h3><p id="showGoal100">-</p></div>
+            <div class="stat"><h3>Current Vertical</h3><p id="showVert">-</p></div>
+            <div class="stat"><h3>Goal Vertical</h3><p id="showGoalVert">-</p></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat"><h3>⭐ Level</h3><p id="level">1</p></div>
+            <div class="stat">
+                <h3>⚡ XP</h3>
+                <p id="xp">0 / 100</p>
+                <p id="levelName">🥚 Fresh Recruit</p>
+                <div class="progress"><div class="fill" id="xpFill"></div></div>
+            </div>
+            <div class="stat">
+                <h3>🔥 Streak</h3>
+                <p id="streakDisplay">0 days</p>
+                <p id="streakStatus" style="font-size:0.9rem;opacity:0.7;">Complete today's workout</p>
+            </div>
+        </div>
+
+        <h2>Progress</h2>
+        <div class="progress"><div class="fill" id="fill"></div></div>
+
+        <div class="section"><h2>📅 Weekly Plan</h2><div id="weeklyPlan"></div></div>
+        <div class="section"><h2>📈 Monthly Plan</h2><div id="monthlyPlan"></div></div>
+
+        <div class="section">
+            <h2>🏃 Training Tools</h2>
+            <div style="display:flex;gap:10px;margin-bottom:15px;">
+                <button onclick="showStopwatch()" style="margin:0;">⏱ Stopwatch</button>
+                <button onclick="showTimer()" style="margin:0;">⏳ Timer</button>
+            </div>
+            <h1 id="display">00:00.00</h1>
+            <div style="display:flex;gap:10px;">
+                <button onclick="startTool()" style="margin:0;">Start</button>
+                <button onclick="pauseTool()" style="margin:0;background:#f59e0b;">Pause</button>
+                <button onclick="resetTool()" style="margin:0;background:#ef4444;">Reset</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🏃 Workout</h2>
+            <div id="workoutBox"><p>Select a workout to begin.</p></div>
+        </div>
+<div class="section">
+    <h2>🏆 Achievements</h2>
+    <div id="achievements"></div>
+</div>
+        <div class="section">
+            <h2>📊 Progress History</h2>
+            <button onclick="saveProgress()" style="margin-bottom:15px;">💾 Save Current Result</button>
+            <div id="history"></div>
+        </div>
+    </div>
+</div>
+
+<footer><p>&copy; The website which actually makes you fast, we are constantly upgrading this website on Sundays!</p></footer>
+
+<script>
+/* =========================
+   GLOBAL VARIABLES
+========================= */
+let playerXP = 0;
+let currentStreak = 0;
+let lastWorkoutDate = null;
+let mode = "stopwatch";
+let interval = null;
+let milliseconds = 0;
+let seconds = 90;
+let currentSprint = 1;
+let currentWorkoutDay = "";
+let stopwatchInterval = null;
+let stopwatchTime = 0;
+let restInterval = null;
+
+/* =========================
+   XP SYSTEM
+========================= */
+const levelData = [
+    { level: 1,  name: "🥚 Fresh Recruit",      xp: 0 },
+    { level: 2,  name: "👟 First Stride",        xp: 100 },
+    { level: 3,  name: "🏃 Pace Chaser",         xp: 250 },
+    { level: 4,  name: "⚡ Quickstep",            xp: 450 },
+    { level: 5,  name: "🔥 Speed Seeker",         xp: 700 },
+    { level: 6,  name: "💨 Wind Runner",          xp: 1000 },
+    { level: 7,  name: "🚀 Acceleration Ace",     xp: 1400 },
+    { level: 8,  name: "⚡ Lightning Runner",     xp: 1850 },
+    { level: 9,  name: "🦅 Sky Sprinter",         xp: 2350 },
+    { level: 10, name: "🔥 Velocity Hunter",     xp: 3000 },
+    { level: 11, name: "💨 Speed Demon",          xp: 3750 },
+    { level: 12, name: "⚡ Shock Runner",         xp: 4600 },
+    { level: 13, name: "🚀 Sonic Striker",        xp: 5600 },
+    { level: 14, name: "🦅 Aerial Athlete",       xp: 6750 },
+    { level: 15, name: "🔥 Velocity Beast",       xp: 8000 },
+    { level: 16, name: "⚡ Thunder Runner",       xp: 9500 },
+    { level: 17, name: "💨 Storm Chaser",        xp: 11250 },
+    { level: 18, name: "🚀 Hyper Sprinter",       xp: 13250 },
+    { level: 19, name: "👑 Speed Elite",          xp: 15500 },
+    { level: 20, name: "🌌 GET FAST Legend",      xp: 18000 }
+];
+
+function getLevelData() {
+    let currentLevel = levelData[0];
+    for (let i = 0; i < levelData.length; i++) {
+        if (playerXP >= levelData[i].xp) currentLevel = levelData[i];
+    }
+    return currentLevel;
+}
+
+function updateXPDisplay() {
+    try {
+        let current = getLevelData();
+        let next = levelData.find(level => level.xp > playerXP);
+        document.getElementById("level").innerHTML = current.level;
+        document.getElementById("levelName").innerHTML = current.name;
+        if (next) {
+            let xpIntoLevel = playerXP - current.xp;
+            let xpNeeded = next.xp - current.xp;
+            document.getElementById("xp").innerHTML = playerXP + " / " + next.xp;
+            let percentage = (xpIntoLevel / xpNeeded) * 100;
+            document.getElementById("xpFill").style.width = Math.min(percentage, 100) + "%";
+        } else {
+            document.getElementById("xp").innerHTML = playerXP + " XP (MAX)";
+            document.getElementById("xpFill").style.width = "100%";
+        }
+        updateStreakDisplay();
+    } catch (e) { console.error("updateXPDisplay:", e); }
+}
+
+function addXP(amount) {
+    let oldLevel = getLevelData().level;
+    playerXP += amount;
+    localStorage.setItem("getFastXP", playerXP);
+    updateXPDisplay();
+    checkAchievements();
+    let newLevel = getLevelData().level;
+    if (newLevel > oldLevel) {
+        alert("🎉 LEVEL UP! 🎉\n\nYou reached Level " + newLevel + "!\n\n" + getLevelData().name);
+    }
+}
+/* =========================
+   ACHIEVEMENT SYSTEM
+========================= */
+
+const achievements = [
+    {
+        id: "firstWorkout",
+        icon: "🟢",
+        name: "First Step",
+        description: "Complete your first workout."
+    },
+    {
+        id: "threeDayStreak",
+        icon: "🔥",
+        name: "3-Day Fire",
+        description: "Reach a 3-day streak."
+    },
+    {
+        id: "sevenDayStreak",
+        icon: "🔥🔥",
+        name: "7-Day Warrior",
+        description: "Reach a 7-day streak."
+    },
+    {
+        id: "fiveHundredXP",
+        icon: "⚡",
+        name: "XP Hunter",
+        description: "Earn 500 XP."
+    },
+    {
+        id: "levelFive",
+        icon: "🚀",
+        name: "Level 5",
+        description: "Reach Level 5."
+    },
+    {
+        id: "tenWorkouts",
+        icon: "🏃",
+        name: "10 Workouts",
+        description: "Complete 10 workouts."
+    },
+    {
+        id: "thirtyDayStreak",
+        icon: "👑",
+        name: "30-Day Beast",
+        description: "Reach a 30-day streak."
+    }
+];
+
+function displayAchievements() {
+    const container = document.getElementById("achievements");
+    if (!container) return;
+
+    const unlockedAchievements =
+        JSON.parse(localStorage.getItem("getFastAchievements")) || {};
+
+    let html = "";
+
+    achievements.forEach(achievement => {
+        const unlocked = unlockedAchievements[achievement.id] === true;
+
+        html += `
+            <div class="plan-item" style="
+                opacity:${unlocked ? "1" : "0.45"};
+                border:1px solid ${unlocked ? "#f59e0b" : "#475569"};
+            ">
+                <span style="font-size:28px;">
+                    ${unlocked ? achievement.icon : "🔒"}
+                </span>
+                <b>${achievement.name}</b>
+                <br>
+                <span style="opacity:0.8;">
+                    ${achievement.description}
+                </span>
+                <br>
+                <small>
+                    ${unlocked ? "✅ UNLOCKED" : "🔒 Locked"}
+                </small>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function checkAchievements() {
+    let unlocked =
+        JSON.parse(localStorage.getItem("getFastAchievements")) || {};
+
+    let newlyUnlocked = [];
+
+    let history =
+        JSON.parse(localStorage.getItem("progressHistory")) || [];
+
+    let workoutCount = history.length;
+
+    if (workoutCount >= 1) {
+        unlocked.firstWorkout = true;
+    }
+
+    if (currentStreak >= 3) {
+        unlocked.threeDayStreak = true;
+    }
+
+    if (currentStreak >= 7) {
+        unlocked.sevenDayStreak = true;
+    }
+
+    if (playerXP >= 500) {
+        unlocked.fiveHundredXP = true;
+    }
+
+    if (getLevelData().level >= 5) {
+        unlocked.levelFive = true;
+    }
+
+    if (workoutCount >= 10) {
+        unlocked.tenWorkouts = true;
+    }
+
+    if (currentStreak >= 30) {
+        unlocked.thirtyDayStreak = true;
+    }
+
+    let alreadyKnown =
+        JSON.parse(localStorage.getItem("getFastAchievementsSeen")) || {};
+
+    Object.keys(unlocked).forEach(id => {
+        if (unlocked[id] === true && !alreadyKnown[id]) {
+
+            const achievement =
+                achievements.find(a => a.id === id);
+
+            if (achievement) {
+                newlyUnlocked.push(achievement);
+                alreadyKnown[id] = true;
+            }
+        }
+    });
+
+    localStorage.setItem(
+        "getFastAchievements",
+        JSON.stringify(unlocked)
+    );
+
+    localStorage.setItem(
+        "getFastAchievementsSeen",
+        JSON.stringify(alreadyKnown)
+    );
+
+    displayAchievements();
+
+    newlyUnlocked.forEach(achievement => {
+        alert(
+            "🏆 ACHIEVEMENT UNLOCKED!\n\n" +
+            achievement.icon + " " +
+            achievement.name +
+            "\n\n" +
+            achievement.description
+        );
+    });
+}
+/* =========================
+   STREAK SYSTEM
+========================= */
+function loadStreakData() {
+    currentStreak = parseInt(localStorage.getItem("getFastStreak")) || 0;
+    lastWorkoutDate = localStorage.getItem("lastWorkoutDate") || null;
+    if (lastWorkoutDate) {
+        const today = new Date().toDateString();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (lastWorkoutDate !== today && lastWorkoutDate !== yesterday.toDateString()) {
+            currentStreak = 0;
+            localStorage.setItem("getFastStreak", "0");
+        }
+    }
+}
+
+function updateStreakDisplay() {
+    try {
+        const streakDisplay = document.getElementById("streakDisplay");
+        const streakStatus = document.getElementById("streakStatus");
+        if (streakDisplay) {
+            streakDisplay.textContent = currentStreak + " day" + (currentStreak !== 1 ? "s" : "");
+        }
+        if (streakStatus) {
+            const today = new Date().toDateString();
+            if (lastWorkoutDate === today) {
+                streakStatus.textContent = "✅ Workout done today!";
+                streakStatus.style.color = "#22c55e";
+            } else if (lastWorkoutDate) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                if (lastWorkoutDate === yesterday.toDateString()) {
+                    streakStatus.textContent = "🔥 Streak active! Do today's workout!";
+                    streakStatus.style.color = "#f59e0b";
+                } else {
+                    streakStatus.textContent = "⚠️ Streak broken. Start again today!";
+                    streakStatus.style.color = "#ef4444";
+                }
+            } else {
+                streakStatus.textContent = "Complete today's workout to start your streak!";
+                streakStatus.style.color = "#94a3b8";
+            }
+        }
+    } catch (e) { console.error("updateStreakDisplay:", e); }
+}
+
+function markWorkoutDone() {
+    try {
+        const today = new Date().toDateString();
+        if (lastWorkoutDate === today) return;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = yesterday.toDateString();
+        if (lastWorkoutDate === yesterdayString) {
+            currentStreak++;
+        } else {
+            currentStreak = 1;
+        }
+        localStorage.setItem("getFastStreak", currentStreak);
+        lastWorkoutDate = today;
+        localStorage.setItem("lastWorkoutDate", today);
+        updateStreakDisplay();
+        checkAchievements();
+    } catch (e) { console.error("markWorkoutDone:", e); }
+}
+
+function isWorkoutDoneToday() {
+    const today = new Date().toDateString();
+    return lastWorkoutDate === today;
+}
+
+function awardWorkoutXP(day) {
+    let xpAmount = 15;
+    if (day === "Monday" || day === "Thursday") xpAmount = 25;
+    else if (day === "Tuesday" || day === "Saturday") xpAmount = 20;
+    else if (day === "Friday") xpAmount = 18;
+    else if (day === "Wednesday") xpAmount = 10;
+    else xpAmount = 15; // fallback for "Saved Progress"
+    addXP(xpAmount);
+    const workoutBox = document.getElementById("workoutBox");
+    const xpNotif = document.createElement("div");
+    xpNotif.style.cssText = `
+        background: #22c55e; color: white; padding: 12px; border-radius: 10px;
+        margin-top: 15px; text-align: center; font-weight: bold; font-size: 18px;
+        animation: fade .5s ease;
+    `;
+    xpNotif.innerHTML = `⚡ +${xpAmount} XP earned!`;
+    workoutBox.appendChild(xpNotif);
+    setTimeout(() => { if (xpNotif.parentNode) xpNotif.remove(); }, 3000);
+}
+
+/* =========================
+   SAVE / LOAD DATA
+========================= */
+function saveData() {
+    try {
+        const athlete = {
+            age: document.getElementById("age").value,
+            height: document.getElementById("height").value,
+            current100: document.getElementById("current100m").value,
+            goal100: document.getElementById("goal100m").value,
+            currentVertical: document.getElementById("currentVertical").value,
+            goalVertical: document.getElementById("goalVertical").value,
+            show100: document.getElementById("show100").innerHTML,
+            showGoal100: document.getElementById("showGoal100").innerHTML,
+            showVert: document.getElementById("showVert").innerHTML,
+            showGoalVert: document.getElementById("showGoalVert").innerHTML,
+            monthlyPlan: document.getElementById("monthlyPlan").innerHTML,
+            progressWidth: document.getElementById("fill").style.width
+        };
+        localStorage.setItem("getFastData", JSON.stringify(athlete));
+    } catch (e) { console.error("saveData:", e); }
+}
+
+function loadData() {
+    try {
+        const saved = JSON.parse(localStorage.getItem("getFastData"));
+        if (!saved) return;
+        document.getElementById("age").value = saved.age || "";
+        document.getElementById("height").value = saved.height || "";
+        document.getElementById("current100m").value = saved.current100 || "";
+        document.getElementById("goal100m").value = saved.goal100 || "";
+        document.getElementById("currentVertical").value = saved.currentVertical || "";
+        document.getElementById("goalVertical").value = saved.goalVertical || "";
+        document.getElementById("show100").innerHTML = saved.show100 || "-";
+        document.getElementById("showGoal100").innerHTML = saved.showGoal100 || "-";
+        document.getElementById("showVert").innerHTML = saved.showVert || "-";
+        document.getElementById("showGoalVert").innerHTML = saved.showGoalVert || "-";
+        document.getElementById("monthlyPlan").innerHTML = saved.monthlyPlan || "";
+        document.getElementById("fill").style.width = saved.progressWidth || "0%";
+        document.getElementById("dashboard").classList.remove("hidden");
+    } catch (e) { console.error("loadData:", e); }
+}
+
+function clearData() {
+    if (confirm("Are you sure you want to delete ALL your progress data?")) {
+        localStorage.removeItem("getFastData");
+        localStorage.removeItem("progressHistory");
+        localStorage.removeItem("getFastXP");
+        localStorage.removeItem("lastWorkoutDate");
+        localStorage.removeItem("getFastStreak");
+        localStorage.removeItem("getFastAchievements");
+        localStorage.removeItem("getFastAchievementsSeen");
+        location.reload();
+    }
+}
+
+/* =========================
+   GENERATE PLAN
+========================= */
+function generatePlan() {
+    try {
+        let age = parseInt(document.getElementById("age").value);
+        let current100 = parseFloat(document.getElementById("current100m").value);
+        let goal100 = parseFloat(document.getElementById("goal100m").value);
+        let currentVert = parseFloat(document.getElementById("currentVertical").value);
+        let goalVert = parseFloat(document.getElementById("goalVertical").value);
+        if (!age || !current100 || !goal100 || !currentVert || !goalVert) {
+            alert("Please fill in all fields with valid numbers.");
+            return;
+        }
+        document.getElementById("show100").innerHTML = current100 + " sec";
+        document.getElementById("showGoal100").innerHTML = goal100 + " sec";
+        document.getElementById("showVert").innerHTML = currentVert + " cm";
+        document.getElementById("showGoalVert").innerHTML = goalVert + " cm";
+        document.getElementById("dashboard").classList.remove("hidden");
+
+        let progress = ((goal100 / current100) * 50) + ((currentVert / goalVert) * 50);
+        document.getElementById("fill").style.width = Math.min(progress, 100) + "%";
+
+        function dayButton(day, content, action) {
+            const todayNumber = new Date().getDay();
+            const dayName = day.split(" ")[0];
+            const dayNumbers = { "Sunday":0, "Monday":1, "Tuesday":2, "Wednesday":3, "Thursday":4, "Friday":5, "Saturday":6 };
+            const isToday = todayNumber === dayNumbers[dayName];
+            const doneToday = isWorkoutDoneToday();
+            return `
+                <div class="plan-item">
+                    <b>${day}</b><br>
+                    ${content}<br><br>
+                    ${doneToday ? `
+                        <button disabled style="background:#475569;cursor:not-allowed;opacity:.55;">
+                            ✅ Done Today
+                        </button>
+                    ` : (isToday ? `
+                        <button onclick="${action}" style="background:#22c55e;">
+                            ▶ Start Workout
+                        </button>
+                    ` : `
+                        <button disabled style="background:#475569;cursor:not-allowed;opacity:.55;">
+                            🔒 Available on ${dayName}
+                        </button>
+                    `)}
+                </div>
+            `;
+        }
+
+        let weeklyPlan = "";
+        if (age <= 12) {
+            weeklyPlan = `
+                ${dayButton("Monday — Acceleration ⚡", "• 5 min warm-up<br>• 4×20m Sprints<br>• 3×10m Starts<br>• 3×20s Plank", "startWorkout('Monday',4,20,90)")}
+                ${dayButton("Tuesday — Jump Skills 🦘", "• 3×5 Squat Jumps<br>• 3×5 Box Jumps<br>• 3×8 Calf Raises<br>• 3×20s Wall Sit", "startSimpleWorkout('Tuesday','Jump Skills: Squat Jumps, Box Jumps, Calf Raises, Wall Sit')")}
+                ${dayButton("Wednesday — Recovery 🧘", "• 5–10 min easy movement<br>• Hip/Ankle/Hamstring mobility", "startSimpleWorkout('Wednesday','Recovery + Mobility')")}
+                ${dayButton("Thursday — Acceleration 🏃", "• Dynamic warm-up<br>• 4×20m Accelerations<br>• 3×10m Starts<br>• 3×20s Side Plank", "startWorkout('Thursday',4,20,90)")}
+                ${dayButton("Friday — Strength Foundation 💪", "• 2×6 Slow Push-Ups<br>• 3×20s Wall Sit<br>• 3×8 Glute Bridges<br>• 2×6 Reverse Lunges", "startSimpleWorkout('Friday','Strength Foundation: Push-Ups, Wall Sit, Glute Bridges, Lunges')")}
+                ${dayButton("Saturday — Jump + Speed 🎯", "• Dynamic warm-up<br>• 3×5 Broad Jumps<br>• 3×5 Vertical Jumps<br>• 3×15m Fast Runs", "startSimpleWorkout('Saturday','Jump + Speed: Broad Jumps, Vertical Jumps, Fast Runs')")}
+                <div class="plan-item"><b>Sunday — Rest 😴</b><br>Full recovery. Rest is important for growth!</div>
+            `;
+        } else if (age <= 18) {
+            weeklyPlan = `
+                ${dayButton("Monday — Acceleration ⚡", "• Dynamic warm-up<br>• 6×30m Sprints<br>• 3×10m Starts<br>• 3×20m Accelerations", "startWorkout('Monday',6,30,90)")}
+                ${dayButton("Tuesday — Explosive Power 🦘", "• 4×5 Box Jumps<br>• 3×5 Squat Jumps<br>• 3×8 Calf Raises<br>• 3×20s Wall Sit<br>• 3×8 Glute Bridges", "startSimpleWorkout('Tuesday','Explosive Power: Box Jumps, Squat Jumps, Calf Raises, Wall Sit, Glute Bridges')")}
+                ${dayButton("Wednesday — Recovery + Mobility 🧘", "• 5–10 min easy movement<br>• Hip/Ankle/Hamstring mobility", "startSimpleWorkout('Wednesday','Recovery + Mobility')")}
+                ${dayButton("Thursday — Acceleration 🏃", "• Dynamic warm-up<br>• 6×30m Accelerations<br>• 3×10m Starts<br>• 3×20m Fast Runs", "startWorkout('Thursday',6,30,90)")}
+                ${dayButton("Friday — Athletic Strength 💪", "• 3×8 Slow Push-Ups<br>• 3×8 Reverse Lunges<br>• 3×10 Glute Bridges<br>• 3×20s Wall Sit<br>• 3×20s Plank", "startSimpleWorkout('Friday','Athletic Strength: Push-Ups, Lunges, Glute Bridges, Wall Sit, Plank')")}
+                ${dayButton("Saturday — Speed + Vertical 🚀", "• Dynamic warm-up<br>• 4×15m Flying Runs<br>• 3×5 Vertical Jumps<br>• 3×5 Broad Jumps", "startSimpleWorkout('Saturday','Speed + Vertical: Flying Runs, Vertical Jumps, Broad Jumps')")}
+                <div class="plan-item"><b>Sunday — Rest 😴</b><br>Full recovery. Your body grows during rest!</div>
+            `;
+        } else {
+            weeklyPlan = `
+                ${dayButton("Monday — Acceleration ⚡", "• Dynamic warm-up<br>• 6×40m Sprints<br>• 4×10m Starts<br>• 3×20m Accelerations", "startWorkout('Monday',6,40,120)")}
+                ${dayButton("Tuesday — Explosive Power 🦘", "• 4×5 Box Jumps<br>• 4×5 Squat Jumps<br>• 3×10 Calf Raises<br>• 3×30s Wall Sit<br>• 3×10 Glute Bridges", "startSimpleWorkout('Tuesday','Explosive Power: Box Jumps, Squat Jumps, Calf Raises, Wall Sit, Glute Bridges')")}
+                ${dayButton("Wednesday — Recovery + Mobility 🧘", "• 10 min easy movement<br>• Hip/Ankle/Hamstring mobility", "startSimpleWorkout('Wednesday','Mobility + Recovery')")}
+                ${dayButton("Thursday — Acceleration 🏃", "• Dynamic warm-up<br>• 6×40m Accelerations<br>• 4×10m Starts<br>• 3×30m Fast Runs", "startWorkout('Thursday',6,40,120)")}
+                ${dayButton("Friday — Athletic Strength 💪", "• 3×10 Slow Push-Ups<br>• 3×10 Reverse Lunges<br>• 3×10 Glute Bridges<br>• 3×30s Wall Sit<br>• 3×25s Plank", "startSimpleWorkout('Friday','Athletic Strength: Push-Ups, Lunges, Glute Bridges, Wall Sit, Plank')")}
+                ${dayButton("Saturday — Maximum Speed + Vertical 🚀", "• Dynamic warm-up<br>• 4×20m Flying Runs<br>• 4×5 Vertical Jumps<br>• 3×5 Broad Jumps", "startSimpleWorkout('Saturday','Maximum Speed + Vertical: Flying Runs, Vertical Jumps, Broad Jumps')")}
+                <div class="plan-item"><b>Sunday — Rest 😴</b><br>Full recovery. Elite athletes prioritize recovery!</div>
+            `;
+        }
+        document.getElementById("weeklyPlan").innerHTML = weeklyPlan;
+        document.getElementById("monthlyPlan").innerHTML = `
+            <div class="plan-item">📅 Month 1 - Build Technique & Foundation</div>
+            <div class="plan-item">📅 Month 2 - Strength Development</div>
+            <div class="plan-item">📅 Month 3 - Explosive Power</div>
+            <div class="plan-item">📅 Month 4 - Maximum Velocity</div>
+            <div class="plan-item">📅 Month 5 - Testing & Peak Performance</div>
+        `;
+        saveData();
+        updateStreakDisplay();
+    } catch (e) { console.error("generatePlan:", e); alert("Error generating plan. Check console."); }
+}
+
+/* =========================
+   STOPWATCH / TIMER
+========================= */
+function showStopwatch() { mode = "stopwatch"; resetTool(); }
+function showTimer() { mode = "timer"; resetTool(); }
+function startTool() {
+    clearInterval(interval);
+    if (mode == "stopwatch") {
+        interval = setInterval(function() {
+            milliseconds += 10;
+            let sec = Math.floor(milliseconds/1000);
+            let ms = Math.floor((milliseconds%1000)/10);
+            let min = Math.floor(sec/60);
+            let s = sec%60;
+            document.getElementById("display").innerHTML =
+                min.toString().padStart(2,"0")+":"+s.toString().padStart(2,"0")+"."+ms.toString().padStart(2,"0");
+        }, 10);
+    } else {
+        interval = setInterval(function() {
+            let min = Math.floor(seconds/60);
+            let sec = seconds%60;
+            document.getElementById("display").innerHTML =
+                min.toString().padStart(2,"0")+":"+sec.toString().padStart(2,"0");
+            seconds--;
+            if (seconds < 0) { clearInterval(interval); document.getElementById("display").innerHTML = "🏁 GO!"; }
+        }, 1000);
+    }
+}
+function pauseTool() { clearInterval(interval); }
+function resetTool() {
+    clearInterval(interval);
+    if (mode == "stopwatch") { milliseconds = 0; document.getElementById("display").innerHTML = "00:00.00"; }
+    else { seconds = 90; document.getElementById("display").innerHTML = "01:30"; }
+}
+function isCorrectWorkoutDay(day) {
+    const todayNumber = new Date().getDay();
+    const dayNumbers = { "Sunday":0,"Monday":1,"Tuesday":2,"Wednesday":3,"Thursday":4,"Friday":5,"Saturday":6 };
+    return todayNumber === dayNumbers[day];
+}
+
+/* =========================
+   WORKOUT SYSTEM
+========================= */
+function startSimpleWorkout(day, description) {
+    try {
+        if (!isCorrectWorkoutDay(day)) {
+            document.getElementById("workoutBox").innerHTML = `
+                <h2>⏰ ${day} Workout</h2>
+                <p><b>${description}</b></p><br>
+                <p style="color:#ef4444;font-size:18px;">❌ This workout is only available on ${day}.</p>
+                <p>Check the weekly plan for today's workout.</p>
+            `;
+            return;
+        }
+        if (isWorkoutDoneToday()) {
+            document.getElementById("workoutBox").innerHTML = `
+                <h2>⏰ ${day} Workout</h2>
+                <p><b>${description}</b></p><br>
+                <p style="color:#fbbf24;font-size:18px;">✅ You've already completed today's workout!</p>
+                <p>Come back tomorrow for more XP. 🔥</p>
+            `;
+            return;
+        }
+        document.getElementById("workoutBox").innerHTML = `
+            <h2>${day} Workout</h2>
+            <p><b>${description}</b></p><br>
+            <p>Complete the session with good technique and take appropriate recovery breaks.</p><br>
+            <button id="completeBtn" style="background:#22c55e;">🏁 Complete Workout</button>
+        `;
+        document.getElementById("completeBtn").addEventListener("click", function() {
+            completeSimpleWorkout(day);
+        });
+    } catch (e) { console.error("startSimpleWorkout:", e); }
+}
+
+function completeSimpleWorkout(day) {
+    try {
+        console.log("completeSimpleWorkout called for", day);
+        if (isWorkoutDoneToday()) {
+            document.getElementById("workoutBox").innerHTML = `
+                <h2>⏰ Already Completed!</h2>
+                <p>You already did your workout today. Come back tomorrow! 💪</p>
+            `;
+            return;
+        }
+        markWorkoutDone();
+        awardWorkoutXP(day);
+        document.getElementById("workoutBox").innerHTML = `
+            <h2>🎉 ${day} Workout Complete!</h2>
+            <p>Nice work! Recovery is part of getting faster.</p>
+            <p style="color:#fbbf24;margin-top:10px;">🔥 Streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</p><br>
+            <button onclick="saveProgress()" style="background:#3b82f6;">💾 Save Workout</button>
+        `;
+    } catch (e) {
+        console.error("completeSimpleWorkout error:", e);
+        alert("An error occurred. Please check console.");
+    }
+}
+
+function startWorkout(day, reps, distance, rest) {
+    try {
+        if (!isCorrectWorkoutDay(day)) {
+            document.getElementById("workoutBox").innerHTML = `
+                <h2>⏰ ${day} Workout</h2>
+                <p>${reps} × ${distance}m Sprints</p><br>
+                <p style="color:#ef4444;font-size:18px;">❌ This workout is only available on ${day}.</p>
+            `;
+            return;
+        }
+        if (isWorkoutDoneToday()) {
+            document.getElementById("workoutBox").innerHTML = `
+                <h2>⏰ ${day} Workout</h2>
+                <p>${reps} × ${distance}m Sprints</p><br>
+                <p style="color:#fbbf24;font-size:18px;">✅ You've already completed today's workout!</p>
+                <p>Come back tomorrow for more XP. 🔥</p>
+            `;
+            return;
+        }
+        document.getElementById("workoutBox").innerHTML = `
+            <h2>${day} Workout</h2>
+            <p><b>${reps}</b> × <b>${distance}m</b> Sprints</p>
+            <p>Rest: <b>${rest} seconds</b></p><br>
+            <button onclick="beginWorkout(${reps},${distance},${rest},'${day}')" style="background:#22c55e;">▶ Begin Workout</button>
+        `;
+    } catch (e) { console.error("startWorkout:", e); }
+}
+
+function beginWorkout(reps, distance, rest, day) {
+    try {
+        currentSprint = 1;
+        currentWorkoutDay = day;
+        document.getElementById("workoutBox").innerHTML = `
+            <h2>Sprint ${currentSprint}/${reps}</h2>
+            <p>${distance} metres</p>
+            <div id="workoutTimer" style="font-size:48px;text-align:center;margin:20px 0;font-family:'Courier New',monospace;">0.00 s</div><br>
+            <button onclick="startStopwatch(${reps},${distance},${rest})" style="background:#22c55e;">START SPRINT</button>
+        `;
+    } catch (e) { console.error("beginWorkout:", e); }
+}
+
+function startStopwatch(reps, distance, rest) {
+    try {
+        clearInterval(stopwatchInterval);
+        stopwatchTime = 0;
+        stopwatchInterval = setInterval(function() {
+            stopwatchTime += 0.01;
+            document.getElementById("workoutTimer").innerHTML = stopwatchTime.toFixed(2) + " s";
+        }, 10);
+        document.querySelector("#workoutBox button").style.display = "none";
+        document.getElementById("workoutBox").innerHTML += `
+            <br><br>
+            <button id="finishBtn" onclick="finishSprint(${reps},${distance},${rest})" style="background:#f59e0b;">🏁 Finish Sprint</button>
+        `;
+    } catch (e) { console.error("startStopwatch:", e); }
+}
+
+function finishSprint(reps, distance, rest) {
+    try {
+        clearInterval(stopwatchInterval);
+        let sprintTime = stopwatchTime.toFixed(2);
+        document.getElementById("workoutBox").innerHTML = `
+            <h2>✅ Sprint ${currentSprint} Complete!</h2>
+            <p>Your Time:</p>
+            <h1 style="font-size:48px;text-align:center;margin:20px 0;">${sprintTime} s</h1><br>
+            <button onclick="nextSprint(${reps},${distance},${rest})" style="background:#22c55e;">Continue →</button>
+        `;
+    } catch (e) { console.error("finishSprint:", e); }
+}
+
+function nextSprint(reps, distance, rest) {
+    try {
+        currentSprint++;
+        if (currentSprint > reps) {
+            if (isWorkoutDoneToday()) {
+                document.getElementById("workoutBox").innerHTML = `
+                    <h2>⏰ Already Completed!</h2>
+                    <p>You already did this workout today!</p>
+                `;
+                return;
+            }
+            markWorkoutDone();
+            awardWorkoutXP(currentWorkoutDay);
+            document.getElementById("workoutBox").innerHTML = `
+                <h2>🎉 Workout Complete!</h2>
+                <p>Excellent job! You completed all ${reps} sprints!</p>
+                <p style="color:#fbbf24;margin-top:10px;">🔥 Streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</p><br>
+                <button onclick="saveProgress()" style="background:#3b82f6;">💾 Save Workout</button>
+            `;
+            return;
+        }
+        document.getElementById("workoutBox").innerHTML = `
+            <h2>Rest Time</h2>
+            <h1 id="restTimer" style="font-size:60px;text-align:center;margin:20px 0;">${rest}</h1>
+            <p style="text-align:center;">seconds</p>
+        `;
+        startRestTimer(reps, distance, rest);
+    } catch (e) { console.error("nextSprint:", e); }
+}
+
+function startRestTimer(reps, distance, rest) {
+    let seconds = rest;
+    document.getElementById("restTimer").innerHTML = seconds;
+    clearInterval(restInterval);
+    restInterval = setInterval(function() {
+        seconds--;
+        document.getElementById("restTimer").innerHTML = seconds;
+        if (seconds <= 0) {
+            clearInterval(restInterval);
+            beginNextSprint(reps, distance, rest);
+        }
+    }, 1000);
+}
+
+function beginNextSprint(reps, distance, rest) {
+    document.getElementById("workoutBox").innerHTML = `
+        <h2>Sprint ${currentSprint}/${reps}</h2>
+        <p>${distance} metres</p>
+        <div id="workoutTimer" style="font-size:48px;text-align:center;margin:20px 0;font-family:'Courier New',monospace;">0.00 s</div><br>
+        <button onclick="startStopwatch(${reps},${distance},${rest})" style="background:#22c55e;">🏃 START SPRINT</button>
+    `;
+}
+
+/* =========================
+   PROGRESS HISTORY – FIXED to award XP if not done yet
+========================= */
+function saveProgress() {
+    try {
+        let history = JSON.parse(localStorage.getItem("progressHistory")) || [];
+        let current = {
+            date: new Date().toLocaleDateString(),
+            time: document.getElementById("current100m").value || "N/A",
+            vertical: document.getElementById("currentVertical").value || "N/A",
+            streak: currentStreak
+        };
+        // Avoid duplicate identical entries
+        if (history.length > 0) {
+            let last = history[history.length - 1];
+            if (last.time == current.time && last.vertical == current.vertical) {
+                alert("This result is already saved.");
+                return;
+            }
+        }
+        history.push(current);
+        localStorage.setItem("progressHistory", JSON.stringify(history));
+        alert("💾 Progress saved! Current streak: " + currentStreak + " days 🔥");
+        displayHistory();
+    } catch (e) {
+        console.error("saveProgress:", e);
+        alert("Error saving. Check console.");
+    }
+}
+
+function displayHistory() {
+    try {
+        let history = JSON.parse(localStorage.getItem("progressHistory")) || [];
+        let html = "";
+        if (history.length === 0) {
+            html = "<p style='opacity:0.6;'>No progress saved yet. Complete a workout and save it!</p>";
+        } else {
+            history.slice().reverse().forEach((item) => {
+                html += `
+                    <div class="plan-item">
+                        <b>📅 ${item.date}</b>
+                        ${item.streak ? `<span class="streak-badge">🔥 ${item.streak} day streak</span>` : ''}
+                        <br>100m: ${item.time} sec<br>Vertical: ${item.vertical} cm
+                    </div>
+                `;
+            });
+        }
+        document.getElementById("history").innerHTML = html;
+    } catch (e) { console.error("displayHistory:", e); }
+}
+
+/* =========================
+   ON LOAD
+========================= */
+window.onload = function() {
+    loadStreakData();
+    loadData();
+    playerXP = parseInt(localStorage.getItem("getFastXP")) || 0;
+    updateXPDisplay();
+    displayHistory();
+    updateStreakDisplay();
+    checkAchievements();
+    if (localStorage.getItem("getFastData") && document.getElementById("age").value) {
+        generatePlan();
+    }
+};
+</script>
+</body>
+</html>
